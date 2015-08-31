@@ -21,17 +21,19 @@ var outputTree = compileStyledown(inputTree, options)
 ```
 
 * **`inputTree`**: An array of a single tree, `['./styles']`. Only CSS-like files will be read. Multiple tree support is possible but not implemented.
-* **`options`**: A hash of options for [broccoli-caching-writer](https://github.com/ember-cli/broccoli-caching-writer#options). Default:
-  ```js
-  {
-    filterFromCache: {
-      include: [/(less|css|sass|scss|styl|md)$/],
-    }
-  }
-  ```
+* **`options`**: Hash of options
   * **`configMd`**: Styledown config markdown file. Path relative to root.
   * **`destFile`**: File to output generated styleguide HTML in build directory.
   * **`styledown`**: A hash of options for [`Styledown.parse`](https://github.com/styledown/styledown/blob/master/index.js)
+
+`options` can also include options for [broccoli-caching-writer](https://github.com/ember-cli/broccoli-caching-writer#options). Default:
+```js
+{
+  filterFromCache: {
+    include: [/(less|css|sass|scss|styl|md)$/],
+  }
+}
+```
 
 ## Development
 
