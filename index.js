@@ -34,6 +34,8 @@ function StyledownCompiler(inputNodes, options) {
   debug('config', this.configMd);
 }
 
+StyledownCompiler.name = 'StyledownCompiler';
+
 StyledownCompiler.prototype.build = function() {
   debug('build');
   debug('inputPaths', this.inputPaths);
