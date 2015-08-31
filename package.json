@@ -1,0 +1,29 @@
+{
+  "name": "broccoli-styledown",
+  "version": "0.0.1",
+  "description": "Broccoli plugin for creating styledown html from css markup",
+  "main": "index.js",
+  "dependencies": {
+    "broccoli-caching-writer": "^1.1.0",
+    "broccoli-funnel": "^0.2.8",
+    "debug": "^2.2.0",
+    "lodash.merge": "^3.3.2",
+    "minimatch": "^2.0.10",
+    "rsvp": "^3.1.0",
+    "styledown": "^1.0.2",
+    "walk-sync": "^0.2.0"
+  },
+  "devDependencies": {
+    "broccoli": "^0.16.7"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "broccoli-plugin",
+    "styledown",
+    "styleguide"
+  ],
+  "author": "Kelly Miyashiro <miyashiro.kelly@gmail.com>",
+  "license": "MIT"
+}
