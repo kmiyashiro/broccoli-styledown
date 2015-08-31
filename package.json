@@ -1,6 +1,6 @@
 {
   "name": "broccoli-styledown",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Broccoli plugin for creating styledown html from css markup",
   "main": "index.js",
   "dependencies": {
