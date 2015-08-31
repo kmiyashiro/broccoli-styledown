@@ -17,23 +17,14 @@ npm install --save-dev broccoli-styledown
 ```js
 var compileStyledown = require('broccoli-styledown');
 
-var outputTree = compileStyledown(inputTree, options)
+var outputTree = compileStyledown([inputTrees], options)
 ```
 
-* **`inputTree`**: An array of a single tree, `['./styles']`. Only CSS-like files will be read. Multiple tree support is possible but not implemented.
+* **`inputTree`**: An array of nodes, `['styles', 'styleguide']`. Only CSS-like files and your config MD file will be passed to Styledown.
 * **`options`**: Hash of options
-  * **`configMd`**: Styledown config markdown file. Path relative to root.
+  * **`configMd`**: Styledown config markdown file. Path relative to any inputNode.
   * **`destFile`**: File to output generated styleguide HTML in build directory.
   * **`styledown`**: A hash of options for [`Styledown.parse`](https://github.com/styledown/styledown/blob/master/index.js)
-
-`options` can also include options for [broccoli-caching-writer](https://github.com/ember-cli/broccoli-caching-writer#options). Default:
-```js
-{
-  filterFromCache: {
-    include: [/(less|css|sass|scss|styl|md)$/],
-  }
-}
-```
 
 ## Development
 

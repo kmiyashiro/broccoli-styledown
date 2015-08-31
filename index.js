@@ -4,8 +4,8 @@ var RSVP = require('rsvp');
 var writeFile = RSVP.denodeify(fs.writeFile);
 var readFile = RSVP.denodeify(fs.readFile);
 var Styledown = require('styledown');
+var Plugin = require('broccoli-plugin');
 var walkSync = require('walk-sync');
-var CachingWriter = require('broccoli-caching-writer');
 var merge = require('lodash.merge');
 var debug = require('debug')('broccoli-styledown');
 
@@ -18,87 +18,107 @@ function getPath(srcPath, fileName) {
   return path.join(srcPath, fileName);
 }
 
-module.exports = CachingWriter.extend({
-  enforceSingleInputTree: true,
+StyledownCompiler.prototype = Object.create(Plugin.prototype);
+StyledownCompiler.prototype.constructor = StyledownCompiler;
 
-  init: function(srcTree, options) {
-    var opts = merge({}, options, {
-      filterFromCache: {
-        include: [WHITELIST_REGEXP, MD_REGEXP],
+function StyledownCompiler(inputNodes, options) {
+  Plugin.call(this, inputNodes, options);
+
+  this.options = options;
+  this.configMd = options.configMd || 'config.md';
+  this.destFile = options.destFile || 'index.html';
+  this.styledown = options.styledown || {};
+
+  debug('inputNodes', inputNodes);
+  debug('destFile', this.destFile);
+  debug('config', this.configMd);
+}
+
+StyledownCompiler.prototype.build = function() {
+  debug('build');
+  debug('inputPaths', this.inputPaths);
+  debug('outputPath', this.outputPath);
+  debug('cachePath', this.cachePath);
+
+  var styledownOpts = this.styledown || {};
+  var destFile = this.destFile;
+  var outputPath = this.outputPath
+
+  var srcDataPromises = this.inputPaths.map(function(inputPath) {
+    return this.getSourceFileData(inputPath);
+  }, this)
+
+  return RSVP.all(srcDataPromises).then(function(srcDataArrays) {
+    // Combine file data arrays from all inputPaths
+    var srcData = srcDataArrays.reduce(function(result, srcDataArray) {
+      return result.concat(srcDataArray);
+    }, []);
+
+    var html = Styledown.parse(srcData, styledownOpts);
+
+    return writeFile(path.join(outputPath, destFile), html, FS_OPTIONS);
+  })
+  .catch(function(err) {
+    debug(err);
+  });
+};
+
+/**
+ * Get all data for files in srcPath.
+ *
+ * @param {String} srcPath Path to read for files
+ * @return {Promise} Array of all files [{ name: 'fileName', data: String }]
+ */
+StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
+  debug('srcPath', srcPath);
+
+  var filePaths = walkSync(srcPath).filter(function(fileName) {
+    if (fileName.match(WHITELIST_REGEXP)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  debug('filePaths', filePaths);
+
+  var readPromises = filePaths.map(function(filePath) {
+    return readFile(getPath(srcPath, filePath), FS_OPTIONS)
+      .then(function(data) {
+        return { name: filePath, data: data };
+      });
+  });
+
+  // For some reason, Styledown chokes if the config md comes before any
+  // of the CSS files
+  if (this.configMd) {
+    var configMd = this.configMd;
+    var configPath = getPath(srcPath, configMd);
+
+    try {
+      if (!fs.statSync(configPath).isFile()) {
+        configPath = null;
       }
-    });
+    } catch(err) {
+      debug('Config file not found');
+      configPath = null;
+    }
 
-    this.destFile = 'index.html';
-
-    this.configMd = 'config.md';
-
-    this.srcTree = srcTree;
-
-    this._super(srcTree, opts);
-
-    debug('srcTrees', srcTree);
-    debug('destFile', this.destFile);
-    debug('config', this.configMd);
-  },
-
-  updateCache: function(srcPath, destDir) {
-    debug('updateCache', srcPath);
-
-    var styledownOpts = this.styledown || {};
-    var destFile = this.destFile;
-
-    return this.getSourceFileData(srcPath).then(function(srcData) {
-      var html = Styledown.parse(srcData, styledownOpts);
-
-      return writeFile(path.join(destDir, destFile), html, FS_OPTIONS);
-    })
-    .catch(function(err) {
-      debug(err);
-    });
-  },
-
-  /**
-   * Get all data for files in srcPath.
-   *
-   * @param {String} srcPath Path to read for files
-   * @return {Promise} Array of all files [{ name: 'fileName', data: String }]
-   */
-  getSourceFileData: function(srcPath) {
-    debug('srcPath', srcPath);
-
-    var filePaths = walkSync(srcPath).filter(function(fileName) {
-      if (fileName.match(WHITELIST_REGEXP)) {
-        return true;
-      }
-
-      return false;
-    });
-
-    debug('filePaths', filePaths);
-
-    var readPromises = filePaths.map(function(filePath) {
-      return readFile(getPath(srcPath, filePath), FS_OPTIONS)
-        .then(function(data) {
-          return { name: filePath, data: data };
-        });
-    });
-
-    // For some reason, Styledown chokes if the config md comes before any
-    // of the CSS files
-    if (this.configMd) {
-      var configMd = this.configMd;
-
-      readPromises.push(readFile(getPath(__dirname, configMd))
+    if (configPath) {
+      debug('Config file found', configPath);
+      readPromises.push(readFile(configPath, FS_OPTIONS)
         .then(function(data) {
           return { name: configMd, data: data };
         })
       );
     }
+  }
 
-    return RSVP.all(readPromises)
-      .catch(function(err) {
-        console.log('Error reading source file data');
-        console.error(err);
-      });
-  },
-});
+  return RSVP.all(readPromises)
+    .catch(function(err) {
+      console.log('Error reading source file data');
+      console.error(err);
+    });
+};
+
+module.exports = StyledownCompiler;

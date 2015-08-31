@@ -20,12 +20,12 @@ describe('Styledown compiler', function() {
   });
 
   it('should write styledown html', function() {
-    tree = builder('./test', {
-      configMd: 'test/config.md',
+    tree = builder(['./test'], {
+      configMd: 'config.md',
       destFile: 'index.html'
     });
 
-    tree.build()
+    return tree.build()
       .then(function(result) {
         var promises = [
           readFile(getPath('expected/index.html'), { encoding: 'utf8' }),
@@ -35,7 +35,9 @@ describe('Styledown compiler', function() {
         return RSVP.all(promises);
       })
       .then(function(results) {
-        assert.equal(results[0].trim(), results[1].trim());
+        assert.ok(results[0], 'expected exists');
+        assert.ok(results[1], 'generated exists');
+        assert.equal(results[0].trim(), results[1].trim(), 'matches expected');
       });
   });
 });
