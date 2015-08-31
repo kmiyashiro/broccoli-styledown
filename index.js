@@ -3,16 +3,16 @@ var path = require('path');
 var RSVP = require('rsvp');
 var writeFile = RSVP.denodeify(fs.writeFile);
 var readFile = RSVP.denodeify(fs.readFile);
-var Minimatch = require('minimatch').Minimatch;
 var Styledown = require('styledown');
 var walkSync = require('walk-sync');
-var Funnel = require('broccoli-funnel');
 var CachingWriter = require('broccoli-caching-writer');
 var merge = require('lodash.merge');
 var debug = require('debug')('broccoli-styledown');
 
 var FS_OPTIONS = { encoding: 'utf8' };
-var EXTENSIONS = '(less|css|sass|scss|styl|md)';
+var EXTENSIONS = '(less|css|sass|scss|styl)';
+var WHITELIST_REGEXP = new RegExp('\.' + EXTENSIONS + '$');
+var MD_REGEXP = new RegExp('\.md$')
 
 function getPath(srcPath, fileName) {
   return path.join(srcPath, fileName);
@@ -21,20 +21,24 @@ function getPath(srcPath, fileName) {
 module.exports = CachingWriter.extend({
   enforceSingleInputTree: true,
 
-  init: function(srcTree, destFile, options) {
+  init: function(srcTree, options) {
     var opts = merge({}, options, {
       filterFromCache: {
-        include: [new RegExp('\.' + EXTENSIONS + '$')],
+        include: [WHITELIST_REGEXP, MD_REGEXP],
       }
     });
 
-    this.destFile = destFile || 'index.html';
-    debug('destFile', this.destFile);
+    this.destFile = 'index.html';
+
+    this.configMd = 'config.md';
 
     this.srcTree = srcTree;
-    debug('srcTrees', srcTree);
 
-    return this._super(srcTree, opts);
+    this._super(srcTree, opts);
+
+    debug('srcTrees', srcTree);
+    debug('destFile', this.destFile);
+    debug('config', this.configMd);
   },
 
   updateCache: function(srcPath, destDir) {
@@ -63,11 +67,11 @@ module.exports = CachingWriter.extend({
     debug('srcPath', srcPath);
 
     var filePaths = walkSync(srcPath).filter(function(fileName) {
-      if (fileName.charAt(fileName.length - 1) === '/') {
-        return false;
+      if (fileName.match(WHITELIST_REGEXP)) {
+        return true;
       }
 
-      return true;
+      return false;
     });
 
     debug('filePaths', filePaths);
@@ -78,6 +82,18 @@ module.exports = CachingWriter.extend({
           return { name: filePath, data: data };
         });
     });
+
+    // For some reason, Styledown chokes if the config md comes before any
+    // of the CSS files
+    if (this.configMd) {
+      var configMd = this.configMd;
+
+      readPromises.push(readFile(getPath(__dirname, configMd))
+        .then(function(data) {
+          return { name: configMd, data: data };
+        })
+      );
+    }
 
     return RSVP.all(readPromises)
       .catch(function(err) {
