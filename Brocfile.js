@@ -1,4 +1,3 @@
-// var funnel = require('broccoli-funnel');
 var compileStyledown = require('./index');
 
 var styleguideHtml = compileStyledown(['test'], {

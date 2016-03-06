@@ -12,7 +12,7 @@ var debug = require('debug')('broccoli-styledown');
 var FS_OPTIONS = { encoding: 'utf8' };
 var EXTENSIONS = '(less|css|sass|scss|styl)';
 var WHITELIST_REGEXP = new RegExp('\.' + EXTENSIONS + '$');
-var MD_REGEXP = new RegExp('\.md$')
+var MD_REGEXP = new RegExp('\.md$');
 
 function getPath(srcPath, fileName) {
   return path.join(srcPath, fileName);
@@ -44,11 +44,11 @@ StyledownCompiler.prototype.build = function() {
 
   var styledownOpts = this.styledown || {};
   var destFile = this.destFile;
-  var outputPath = this.outputPath
+  var outputPath = this.outputPath;
 
   var srcDataPromises = this.inputPaths.map(function(inputPath) {
     return this.getSourceFileData(inputPath);
-  }, this)
+  }, this);
 
   return RSVP.all(srcDataPromises).then(function(srcDataArrays) {
     // Combine file data arrays from all inputPaths
@@ -72,6 +72,7 @@ StyledownCompiler.prototype.build = function() {
  * @return {Promise} Array of all files [{ name: 'fileName', data: String }]
  */
 StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
+  var configMd = this.configMd;
   debug('srcPath', srcPath);
 
   var filePaths = walkSync(srcPath).filter(function(fileName) {
@@ -82,6 +83,23 @@ StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
     return false;
   });
 
+  var filePathsMd = walkSync(srcPath).filter(function(fileName) {
+    if (fileName !== configMd && fileName.match(MD_REGEXP)) {
+      return true;
+    }
+
+    return false;
+  });
+
+  // For some reason, Styledown chokes if the md files comes before any
+  // of the CSS files
+  filePaths = filePaths.concat(filePathsMd);
+
+  // If available, add configMd at the end of the list
+  if (configMd) {
+    filePaths = filePaths.concat(configMd);
+  }
+
   debug('filePaths', filePaths);
 
   var readPromises = filePaths.map(function(filePath) {
@@ -90,31 +108,6 @@ StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
         return { name: filePath, data: data };
       });
   });
-
-  // For some reason, Styledown chokes if the config md comes before any
-  // of the CSS files
-  if (this.configMd) {
-    var configMd = this.configMd;
-    var configPath = getPath(srcPath, configMd);
-
-    try {
-      if (!fs.statSync(configPath).isFile()) {
-        configPath = null;
-      }
-    } catch(err) {
-      debug('Config file not found');
-      configPath = null;
-    }
-
-    if (configPath) {
-      debug('Config file found', configPath);
-      readPromises.push(readFile(configPath, FS_OPTIONS)
-        .then(function(data) {
-          return { name: configMd, data: data };
-        })
-      );
-    }
-  }
 
   return RSVP.all(readPromises)
     .catch(function(err) {
