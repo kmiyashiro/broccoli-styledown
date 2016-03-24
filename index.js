@@ -22,6 +22,8 @@ StyledownCompiler.prototype = Object.create(Plugin.prototype);
 StyledownCompiler.prototype.constructor = StyledownCompiler;
 
 function StyledownCompiler(inputNodes, options) {
+  options = options || {};
+
   Plugin.call(this, inputNodes, options);
 
   this.options = options;
