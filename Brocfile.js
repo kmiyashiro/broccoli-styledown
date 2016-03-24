@@ -1,6 +1,6 @@
-var compileStyledown = require('./index');
+var StyledownWriter = require('./index');
 
-var styleguideHtml = compileStyledown(['test'], {
+var styleguideHtml = new StyledownWriter(['test'], {
   configMd: 'test/config.md'
 });
 
