@@ -18,6 +18,20 @@ function getPath(srcPath, fileName) {
   return path.join(srcPath, fileName);
 }
 
+function checkFileExists(path) {
+  try {
+    if (!fs.statSync(path).isFile()) {
+      debug('Path is not a file');
+      return false;
+    }
+  } catch(err) {
+    debug('File not found', path);
+    return false;
+  }
+
+  return true;
+}
+
 StyledownCompiler.prototype = Object.create(Plugin.prototype);
 StyledownCompiler.prototype.constructor = StyledownCompiler;
 
@@ -85,8 +99,10 @@ StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
     return false;
   });
 
+  debug('filter markdown files');
   var filePathsMd = walkSync(srcPath).filter(function(fileName) {
     if (fileName !== configMd && fileName.match(MD_REGEXP)) {
+      debug('detected markdown', fileName);
       return true;
     }
 
@@ -99,7 +115,13 @@ StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
 
   // If available, add configMd at the end of the list
   if (configMd) {
-    filePaths = filePaths.concat(configMd);
+    var configPath = getPath(srcPath, configMd);
+    var configExists = checkFileExists(configPath);
+
+    if (configExists) {
+      debug('Config file found', configPath);
+      filePaths = filePaths.concat(configMd);
+    }
   }
 
   debug('filePaths', filePaths);
@@ -115,6 +137,7 @@ StyledownCompiler.prototype.getSourceFileData = function(srcPath) {
     .catch(function(err) {
       console.log('Error reading source file data');
       console.error(err);
+      throw(err);
     });
 };
 
