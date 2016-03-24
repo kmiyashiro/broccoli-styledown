@@ -35,9 +35,12 @@ describe('Styledown compiler', function() {
         return RSVP.all(promises);
       })
       .then(function(results) {
-        assert.ok(results[0], 'expected exists');
-        assert.ok(results[1], 'generated exists');
-        assert.equal(results[0].trim(), results[1].trim(), 'matches expected');
+        var expected = results[0].trim();
+        var result = results[1].trim();
+
+        assert.ok(expected, 'expected exists');
+        assert.ok(result, 'generated exists');
+        assert.equal(expected, result, 'matches expected');
       });
   });
 });

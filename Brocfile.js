@@ -1,7 +1,5 @@
-var compileStyledown = require('./index');
+var StyledownWriter = require('./index');
 
-var styleguideHtml = compileStyledown(['test'], {
-  configMd: 'test/config.md'
-});
+var styleguideHtml = new StyledownWriter(['test']);
 
 module.exports = styleguideHtml;
